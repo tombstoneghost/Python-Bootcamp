@@ -3,6 +3,8 @@ from tkinter import *
 from tkinter import messagebox
 from random import randint, choice, shuffle
 import pyperclip
+import json
+
 
 # Password  Generator
 def generate_password():
@@ -31,16 +33,51 @@ def save_password():
     email = email_entry.get()
     password = password_entry.get()
 
+    new_data = {
+        website: {
+            "email": email, 
+            "password": password
+        }
+    }
+
     if len(website) == 0 or len(password) == 0 or len(email) == 0:
         messagebox.showinfo(title="Oops", message="Please make sure you haven't left any fields empty.")
     else:
         is_okay = messagebox.askokcancel(title=website, message=f"These are the details entered:\nEmail: {email}\nPassword: {password}\nIs it okay to save?")    
 
         if is_okay:
-            with open("data.txt", "a") as data_file:
-                data_file.write(f"{website} | {email} | {password}\n")
+            try:
+                with open("data.json", "r") as data_file:
+                    data = json.load(data_file)
+            except FileNotFoundError:
+                with open("data.json", "w") as data_file:
+                    json.dump(new_data, data_file, indent=4)
+            else:
+                data.update(new_data)
+            
+                with open("data.json", "w") as data_file:
+                    json.dump(data, data_file, indent=4)
+            finally:
                 website_entry.delete(0, END)
                 password_entry.delete(0, END)
+
+# Search Credentials
+def search_credentials():
+    website = website_entry.get()
+    try:
+        with open("data.json") as data_file:
+            data = json.load(data_file)
+    except FileNotFoundError:
+        messagebox.showerror(title="Error", message="Database is empty.")
+    else:
+        if website in data.keys():
+            email = data[website]["email"]
+            password = data[website]["password"]
+
+            messagebox.showinfo(title=website, message=f"Email: {email}\nPassword: {password}")
+        else:
+            messagebox.showerror(title="Error", message=f"No credentials found for {website}")
+
 
 # UI Setup
 window = Tk()
@@ -62,11 +99,11 @@ email_label.grid(row=2, column=0)
 password_label.grid(row=3, column=0)
 
 # Entries
-website_entry = Entry(width=55)
+website_entry = Entry(width=36)
 email_entry = Entry(width=55)
 password_entry = Entry(width=36)
 
-website_entry.grid(row=1, column=1, columnspan=2)
+website_entry.grid(row=1, column=1, columnspan=1)
 email_entry.grid(row=2, column=1, columnspan=2)
 password_entry.grid(row=3, column=1)
 
@@ -77,9 +114,11 @@ email_entry.insert(0, "default-email@example.com")
 # Buttons
 generate_password_button = Button(text="Generate Password", command=generate_password)
 add_password_button = Button(text="Add", width=36, command=save_password)
+search_button = Button(text="Search", width=14, command=search_credentials)
 
 generate_password_button.grid(row=3, column=2)
 add_password_button.grid(row=4, column=1, columnspan=2)
+search_button.grid(row=1, column=2)
 
 window.mainloop()
 
